@@ -10,6 +10,7 @@ type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 export default function Portfolio() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [showIntro, setShowIntro] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', content: 'Hai! Aku asisten informasi Rizky. Mau tahu tentang hobi, sekolah, atau cita-citanya? Tanya aja 🙂' }]);
   const [input, setInput] = useState('');
@@ -39,6 +40,19 @@ export default function Portfolio() {
   const quickQuestions = ['Apa hobi Rizky?', 'Rizky sekolah di mana?', 'Apa cita-cita Rizky?'];
 
   return <main className="site-shell">
+    {showIntro && <section className="welcome-screen" aria-label="Welcome to my portfolio">
+      <div className="welcome-glow welcome-glow-one" /><div className="welcome-glow welcome-glow-two" />
+      <div className="welcome-topline"><span className="welcome-brand"><span className="brand-mark">r.</span> rizky<span className="brand-muted">/space</span></span><span className="welcome-edition">PERSONAL PORTFOLIO <span>·</span> 2026</span></div>
+      <div className="welcome-center">
+        <div className="welcome-orbit"><span className="welcome-orbit-dot" /><span className="welcome-orbit-core">r.</span></div>
+        <p className="welcome-kicker"><span className="status-dot" /> A LITTLE SPACE ABOUT ME</p>
+        <h1 className="welcome-title">Welcome to<br /><span className="gradient-text">my portfolio.</span></h1>
+        <p className="welcome-description">Cerita singkat tentang hal yang aku suka, perjalanan yang aku jalani, dan mimpi yang ingin aku capai.</p>
+        <button className="button button-primary welcome-enter" onClick={() => setShowIntro(false)}>Explore portfolio <FontAwesomeIcon icon={faArrowRight} /></button>
+        <button className="welcome-skip" onClick={() => setShowIntro(false)}>Lewati intro <span>↗</span></button>
+      </div>
+      <div className="welcome-bottomline"><span>MADE TO FEEL PERSONAL</span><span className="welcome-scroll-mark"><span /> SCROLL LESS, EXPLORE MORE</span><span>01 — INTRO</span></div>
+    </section>}
     <div className="ambient ambient-one" /><div className="ambient ambient-two" />
     <header className="topbar glass">
       <a className="brand" href="#home" aria-label="Rizky, beranda"><span className="brand-mark">r.</span><span>rizky<span className="brand-muted">/space</span></span></a>
