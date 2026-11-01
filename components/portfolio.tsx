@@ -4,15 +4,70 @@ import Image from 'next/image';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInstagram, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
-import { faArrowDown, faArrowUpRightFromSquare, faMoon, faSun, faPaperPlane, faXmark, faMessage, faFish, faFutbol, faWandMagicSparkles, faArrowRight, faCompass, faHeart, faPalette } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUpRightFromSquare, faPaperPlane, faXmark, faMessage, faFish, faFutbol, faWandMagicSparkles, faArrowRight, faCompass, faHeart, faMoon, faSun } from '@fortawesome/free-solid-svg-icons';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
+function NeonGridCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) return;
+    let frame = 0;
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let raf = 0;
+    let visible = !document.hidden;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const resize = () => {
+      dpr = Math.min(window.devicePixelRatio || 1, 1.6);
+      width = window.innerWidth; height = window.innerHeight;
+      canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
+      canvas.style.width = `${width}px`; canvas.style.height = `${height}px`;
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    const draw = () => {
+      context.clearRect(0, 0, width, height);
+      const step = width < 650 ? 30 : 38;
+      const t = reduced ? 0 : frame * 0.009;
+      context.lineWidth = 0.65;
+      for (let x = 0; x <= width; x += step) {
+        context.beginPath(); context.moveTo(x, 0); context.lineTo(x, height);
+        context.strokeStyle = 'rgba(35, 111, 255, 0.105)'; context.stroke();
+      }
+      for (let y = 0; y <= height; y += step) {
+        context.beginPath(); context.moveTo(0, y); context.lineTo(width, y);
+        context.strokeStyle = 'rgba(35, 111, 255, 0.105)'; context.stroke();
+      }
+      if (!reduced) {
+        const bandY = ((t * 22) % (height + 180)) - 90;
+        const gradient = context.createLinearGradient(0, bandY - 90, 0, bandY + 90);
+        gradient.addColorStop(0, 'rgba(35,111,255,0)');
+        gradient.addColorStop(0.5, 'rgba(35,111,255,0.12)');
+        gradient.addColorStop(1, 'rgba(35,111,255,0)');
+        context.fillStyle = gradient; context.fillRect(0, bandY - 90, width, 180);
+        const pulseX = (Math.sin(t * 0.48) * 0.5 + 0.5) * width;
+        const pulseY = (Math.cos(t * 0.31) * 0.5 + 0.5) * height;
+        const glow = context.createRadialGradient(pulseX, pulseY, 0, pulseX, pulseY, 190);
+        glow.addColorStop(0, 'rgba(35,111,255,0.10)'); glow.addColorStop(1, 'rgba(35,111,255,0)');
+        context.fillStyle = glow; context.fillRect(0, 0, width, height);
+      }
+      frame += 1;
+      if (visible && !reduced) raf = window.requestAnimationFrame(draw);
+    };
+    const onVisibility = () => { visible = !document.hidden; if (visible && !reduced) { cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); } else cancelAnimationFrame(raf); };
+    resize(); draw();
+    window.addEventListener('resize', resize); document.addEventListener('visibilitychange', onVisibility);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); document.removeEventListener('visibilitychange', onVisibility); };
+  }, []);
+  return <canvas ref={canvasRef} className="neon-grid-canvas" aria-hidden="true" />;
+}
+
 export default function Portfolio() {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [accent, setAccent] = useState<'blue' | 'white' | 'green' | 'orange' | 'pink' | 'purple'>('blue');
-  const [paletteOpen, setPaletteOpen] = useState(false);
   const [activePage, setActivePage] = useState<'home' | 'about' | 'hobbies' | 'education' | 'contact'>('home');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [showIntro, setShowIntro] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', content: 'Hai! Aku asisten informasi Rizky. Mau tahu tentang hobi, sekolah, atau cita-citanya? Tanya aja 🙂' }]);
@@ -21,8 +76,18 @@ export default function Portfolio() {
   const [chatError, setChatError] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
-  useEffect(() => { document.documentElement.dataset.accent = accent; }, [accent]);
+  useEffect(() => {
+    const saved = window.localStorage.getItem('rizky-theme');
+    const initial = saved === 'dark' ? 'dark' : 'light';
+    setTheme(initial);
+    document.documentElement.dataset.theme = initial;
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('rizky-theme', theme);
+  }, [theme]);
+
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages, loading, chatOpen]);
 
   async function sendMessage(event?: FormEvent, suggested?: string) {
@@ -44,6 +109,7 @@ export default function Portfolio() {
   const quickQuestions = ['Apa hobi Rizky?', 'Rizky sekolah di mana?', 'Apa cita-cita Rizky?'];
 
   return <main className="site-shell" data-page={activePage}>
+    <NeonGridCanvas />
     {showIntro && <section className="welcome-screen" aria-label="Welcome to my portfolio">
       <div className="welcome-glow welcome-glow-one" /><div className="welcome-glow welcome-glow-two" />
       <div className="welcome-topline"><span className="welcome-brand"><span className="brand-mark">r.</span> rizky<span className="brand-muted">/space</span></span><span className="welcome-edition">PERSONAL PORTFOLIO <span>·</span> 2026</span></div>
@@ -57,14 +123,11 @@ export default function Portfolio() {
       </div>
       <div className="welcome-bottomline"><span>MADE TO FEEL PERSONAL</span><span className="welcome-scroll-mark"><span /> SCROLL LESS, EXPLORE MORE</span><span>01 — INTRO</span></div>
     </section>}
-    <div className="ambient ambient-one" /><div className="ambient ambient-two" />
     <header className="topbar glass">
       <a className="brand" href="#home" onClick={(e) => { e.preventDefault(); setActivePage('home'); }} aria-label="Rizky, beranda"><span className="brand-mark">r.</span><span>rizky<span className="brand-muted">/space</span></span></a>
       <nav className="nav-links" aria-label="Navigasi utama"><button className={activePage === 'home' ? 'active' : ''} onClick={() => setActivePage('home')}>Beranda</button><button className={activePage === 'about' ? 'active' : ''} onClick={() => setActivePage('about')}>Tentang</button><button className={activePage === 'hobbies' ? 'active' : ''} onClick={() => setActivePage('hobbies')}>Hobi</button><button className={activePage === 'education' ? 'active' : ''} onClick={() => setActivePage('education')}>Pendidikan</button><button className={activePage === 'contact' ? 'active' : ''} onClick={() => setActivePage('contact')}>Kontak</button></nav>
-      <div className="topbar-tools"><button className="palette-toggle" onClick={() => setPaletteOpen(!paletteOpen)} aria-label="Atur warna latar" title="Atur warna"><FontAwesomeIcon icon={faPalette} /><span>Warna</span></button><button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Ganti tema" title="Ganti tema">{theme === 'dark' ? <FontAwesomeIcon icon={faSun} /> : <FontAwesomeIcon icon={faMoon} />}<span>{theme === 'dark' ? 'Light' : 'Dark'}</span></button></div>
+      <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')} aria-label={theme === 'light' ? 'Aktifkan mode hitam' : 'Aktifkan mode putih'} title={theme === 'light' ? 'Black mode' : 'White mode'}><FontAwesomeIcon icon={theme === 'light' ? faMoon : faSun} /><span>{theme === 'light' ? 'Black mode' : 'White mode'}</span></button>
     </header>
-    {paletteOpen && <div className="palette-panel glass" role="dialog" aria-label="Pilihan warna latar"><div className="palette-head"><strong>Warna canvas</strong><button onClick={() => setPaletteOpen(false)} aria-label="Tutup pilihan warna"><FontAwesomeIcon icon={faXmark} /></button></div><div className="palette-options">{([{id:'blue',label:'Neon blue',color:'#4d8dff'},{id:'white',label:'Ice white',color:'#f4f7ff'},{id:'green',label:'Acid green',color:'#7dff8a'},{id:'orange',label:'Neon orange',color:'#ff8a3d'},{id:'pink',label:'Hot pink',color:'#ff5bc8'},{id:'purple',label:'Violet',color:'#a18aff'}] as const).map((item) => <button key={item.id} className={`palette-swatch ${accent === item.id ? 'selected' : ''}`} onClick={() => setAccent(item.id)} aria-label={item.label} title={item.label}><span style={{background:item.color}} /><small>{item.label}</small></button>)}</div><p>Ganti glow dan garis canvas sesuai mood.</p></div>}
-
     <section className="hero section-wrap" id="home" data-view="home">
       <div className="hero-copy"><div className="eyebrow"><span className="status-dot" /> SEBUAH RUANG KECIL TENTANG AKU</div>
         <h1>Kenalan dulu,<br /><span className="gradient-text">aku Rizky.</span></h1>
